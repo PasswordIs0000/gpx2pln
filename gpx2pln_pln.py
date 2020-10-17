@@ -39,7 +39,41 @@ class PlnFile:
             self.__flightElevation = int(elevation) + 1000
         assert type(self.__flightElevation) == int and self.__flightElevation > 0
 
-    def write(self, fname):
+    def write(self, fname, airport_db=None):
+        # select waypoints to write
+        coords = copy.deepcopy(self.__flightCoords)
+
+        # just so we have variable names to fill
+        departure_id = None
+        departure_type = None
+        departure_coord = None
+        departure_name = None
+        destination_id = None
+        destination_type = None
+        destination_coord = None
+        destination_name = None
+        
+        # set the departure, destination and waypoints correctly
+        if airport_db is None:
+            # departure info
+            departure_id = "CUSTD"
+            departure_type = "Intersection"
+            departure_coord = _coord2str(coords[0], self.__flightElevation)
+            departure_name = "GPX departure"
+            
+            # destination info
+            destination_id = "CUSTA"
+            destination_type = "Intersection"
+            lat = float(coords[-1].lat) + 0.5
+            lon = float(coords[-1].lon) + 0.5
+            destination_coord = _coord2str(LatLon23.LatLon(lat, lon), self.__flightElevation)
+            destination_name = "GPX destination"
+            
+            # trim the coordinates
+            coords = coords[1:]
+        else:
+            pass
+
         # empty xml document
         xml_root = xml.etree.ElementTree.Element("SimBase.Document", {"Type": "AceXML", "version": "1,0"})
         xml_data = xml.etree.ElementTree.ElementTree(xml_root)
@@ -52,46 +86,44 @@ class PlnFile:
         xml.etree.ElementTree.SubElement(flightplan_node, "Title").text = self.__flightTitle
         xml.etree.ElementTree.SubElement(flightplan_node, "FPType").text = "VFR"
         xml.etree.ElementTree.SubElement(flightplan_node, "CruisingAlt").text = str(self.__flightElevation)
-        xml.etree.ElementTree.SubElement(flightplan_node, "DepartureID").text = "CUSTD"
-        xml.etree.ElementTree.SubElement(flightplan_node, "DepartureLLA").text = _coord2str(self.__flightCoords[0], self.__flightElevation)
-        xml.etree.ElementTree.SubElement(flightplan_node, "DestinationID").text = "CUSTA"
-        xml.etree.ElementTree.SubElement(flightplan_node, "DestinationLLA").text = _coord2str(self.__flightCoords[-1], self.__flightElevation)
+        xml.etree.ElementTree.SubElement(flightplan_node, "DepartureID").text = departure_id
+        xml.etree.ElementTree.SubElement(flightplan_node, "DepartureLLA").text = departure_coord
+        xml.etree.ElementTree.SubElement(flightplan_node, "DestinationID").text = destination_id
+        xml.etree.ElementTree.SubElement(flightplan_node, "DestinationLLA").text = destination_coord
         xml.etree.ElementTree.SubElement(flightplan_node, "Descr").text = self.__flightDescription
-        xml.etree.ElementTree.SubElement(flightplan_node, "DepartureName").text = "GPX departure"
-        xml.etree.ElementTree.SubElement(flightplan_node, "DestinationName").text = "GPX destination"
+        xml.etree.ElementTree.SubElement(flightplan_node, "DepartureName").text = departure_name
+        xml.etree.ElementTree.SubElement(flightplan_node, "DestinationName").text = destination_name
 
         # app version
         app_version_node = xml.etree.ElementTree.SubElement(flightplan_node, "AppVersion")
         xml.etree.ElementTree.SubElement(app_version_node, "AppVersionMajor").text = "11"
         xml.etree.ElementTree.SubElement(app_version_node, "AppVersionBuild").text = "282174"
 
-        # select waypoints to write
-        # TODO: fix this workaround!
-        # currently we don't have airports and the departure and destination and instead start in flight.
-        # microsoft flight simulator does not seem to like this in a .pln file and moves the destination
-        # to some far away point. workaround for now is to just add the destination point twice so
-        # at least we have it once.
-        coords = copy.deepcopy(self.__flightCoords)
-        coords.append(self.__flightCoords[-1])
+        # write the departure
+        departure_node = xml.etree.ElementTree.SubElement(flightplan_node, "ATCWaypoint", {"id": departure_id})
+        xml.etree.ElementTree.SubElement(departure_node, "ATCWaypointType").text = departure_type
+        xml.etree.ElementTree.SubElement(departure_node, "WorldPosition").text = departure_coord
+        xml.etree.ElementTree.SubElement(departure_node, "SpeedMaxFP").text = "-1"
+        icao_node = xml.etree.ElementTree.SubElement(departure_node, "ICAO")
+        xml.etree.ElementTree.SubElement(icao_node, "ICAOIdent").text = departure_id
 
         # write the waypoints
         for i in range(len(coords)):
             coord = coords[i]
-            name = "Custom"
-            if i == 0:
-                name = "CUSTD"
-            elif i == len(coords)-1:
-                name = "CUSTA"
+            name = "Cust" + str(i+1)
             type = "User"
-            if (i == 0) or (i == len(coords)-1):
-                type = "Intersection"
             waypoint_node = xml.etree.ElementTree.SubElement(flightplan_node, "ATCWaypoint", {"id": name})
             xml.etree.ElementTree.SubElement(waypoint_node, "ATCWaypointType").text = type
             xml.etree.ElementTree.SubElement(waypoint_node, "WorldPosition").text = _coord2str(coord, self.__flightElevation)
             xml.etree.ElementTree.SubElement(waypoint_node, "SpeedMaxFP").text = "-1"
-            if (i == 0) or (i == len(coords)-1):
-                icao_node = xml.etree.ElementTree.SubElement(waypoint_node, "ICAO")
-                xml.etree.ElementTree.SubElement(icao_node, "ICAOIdent").text = name
+        
+        # write the destination
+        destination_node = xml.etree.ElementTree.SubElement(flightplan_node, "ATCWaypoint", {"id": destination_id})
+        xml.etree.ElementTree.SubElement(destination_node, "ATCWaypointType").text = destination_type
+        xml.etree.ElementTree.SubElement(destination_node, "WorldPosition").text = destination_coord
+        xml.etree.ElementTree.SubElement(destination_node, "SpeedMaxFP").text = "-1"
+        icao_node = xml.etree.ElementTree.SubElement(destination_node, "ICAO")
+        xml.etree.ElementTree.SubElement(icao_node, "ICAOIdent").text = destination_id
         
         # write the xml document to the file
         xml_data.write(fname, encoding="utf-8", xml_declaration=True)

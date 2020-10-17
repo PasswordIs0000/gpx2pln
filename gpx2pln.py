@@ -7,6 +7,11 @@ from gpx2pln_pln import PlnFile
 
 import gpx2pln_subsample
 
+# only for debugging. coordinates can be copy-pasted into microsoft flight simulator.
+def _debug_print_leg(coords):
+    for c in coords:
+        print("%s,%s" % (c.lat,c.lon))
+
 def main():
     # parse command line arguments
     parser = argparse.ArgumentParser(description="Convert a GPX file to one or multiple PLN files for import in a flight simulator.")
@@ -43,7 +48,7 @@ def main():
     # save the legs as pln files
     print("Writing the PLN files... ", end="", flush=True)
     for i in range(len(legs)):
-        counter = "%02i" % (i+1)
+        counter = str(i+1)
         title = gpx.get_track_name()
         if len(title) == 0:
             title = "Unnamed flight plan"

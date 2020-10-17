@@ -1,5 +1,6 @@
 import xml.etree.ElementTree
 import LatLon23
+import copy
 
 # DISCLAIMER: I didn't really study the PLN file format. I've exported from Microsoft Flight Simulator 2020 and did 'learning by doing'.
 #             Feel free to improve this! :-) I just kindly request that the export is compatible with Microsoft Flight Simulator 2020.
@@ -64,22 +65,31 @@ class PlnFile:
         xml.etree.ElementTree.SubElement(app_version_node, "AppVersionMajor").text = "11"
         xml.etree.ElementTree.SubElement(app_version_node, "AppVersionBuild").text = "282174"
 
+        # select waypoints to write
+        # TODO: fix this workaround!
+        # currently we don't have airports and the departure and destination and instead start in flight.
+        # microsoft flight simulator does not seem to like this in a .pln file and moves the destination
+        # to some far away point. workaround for now is to just add the destination point twice so
+        # at least we have it once.
+        coords = copy.deepcopy(self.__flightCoords)
+        coords.append(self.__flightCoords[-1])
+
         # write the waypoints
-        for i in range(len(self.__flightCoords)):
-            coord = self.__flightCoords[i]
-            name = "Custom " + str(i)
+        for i in range(len(coords)):
+            coord = coords[i]
+            name = "Custom"
             if i == 0:
                 name = "CUSTD"
-            elif i == len(self.__flightCoords)-1:
+            elif i == len(coords)-1:
                 name = "CUSTA"
             type = "User"
-            if (i == 0) or (i == len(self.__flightCoords)-1):
+            if (i == 0) or (i == len(coords)-1):
                 type = "Intersection"
             waypoint_node = xml.etree.ElementTree.SubElement(flightplan_node, "ATCWaypoint", {"id": name})
             xml.etree.ElementTree.SubElement(waypoint_node, "ATCWaypointType").text = type
             xml.etree.ElementTree.SubElement(waypoint_node, "WorldPosition").text = _coord2str(coord, self.__flightElevation)
             xml.etree.ElementTree.SubElement(waypoint_node, "SpeedMaxFP").text = "-1"
-            if (i == 0) or (i == len(self.__flightCoords)-1):
+            if (i == 0) or (i == len(coords)-1):
                 icao_node = xml.etree.ElementTree.SubElement(waypoint_node, "ICAO")
                 xml.etree.ElementTree.SubElement(icao_node, "ICAOIdent").text = name
         

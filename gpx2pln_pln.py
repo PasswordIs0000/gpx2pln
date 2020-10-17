@@ -43,6 +43,12 @@ class PlnFile:
         # select waypoints to write
         coords = copy.deepcopy(self.__flightCoords)
 
+        # HINT: microsoft flight simulator seems to loose the last waypoint when finishing in the air.
+        # this is why we add the last waypoint twice when not using the airport database.
+        # the destination airport will sometimes not be consistent and then the same behaviour occurs and we
+        # will finish in the air.
+        # this looks strange on the world map when planning a flight, but the vfr map seems to be okay.
+
         # just so we have variable names to fill
         departure_id = None
         departure_type = None
@@ -72,7 +78,19 @@ class PlnFile:
             # trim the coordinates
             coords = coords[1:]
         else:
-            pass
+            # nearest departure airport
+            lat = float(coords[0].lat)
+            lon = float(coords[0].lon)
+            departure_id, lat, lon, ele, departure_name = airport_db.find_nearest(lat, lon)
+            departure_type = "Airport"
+            departure_coord = _coord2str(LatLon23.LatLon(lat, lon), ele)
+
+            # nearest destination airport
+            lat = float(coords[-1].lat)
+            lon = float(coords[-1].lon)
+            destination_id, lat, lon, ele, destination_name = airport_db.find_nearest(lat, lon)
+            destination_type = "Airport"
+            destination_coord = _coord2str(LatLon23.LatLon(lat, lon), ele)
 
         # empty xml document
         xml_root = xml.etree.ElementTree.Element("SimBase.Document", {"Type": "AceXML", "version": "1,0"})

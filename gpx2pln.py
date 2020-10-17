@@ -29,6 +29,10 @@ def main():
     assert args.num_leg_points >= 2
     assert args.algorithm in ["subsample"]
 
+    # warn the user if not using the airport database
+    if args.use_airports is None:
+        print("WARNING: Using the option '--use_airports' is highly recommended! E.g.: --use_airports airports.dat")
+
     # create the airport database if requested
     airport_db = None
     if not args.use_airports is None:

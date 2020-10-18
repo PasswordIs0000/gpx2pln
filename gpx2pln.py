@@ -42,7 +42,7 @@ def main():
     max_leg_length = None if args.max_leg_length is None else args.max_leg_length * 1.609344
 
     # read the gpx files
-    print("Reading the GPX files... ", end="", flush=True)
+    print("Processing the GPX file(s)... ", end="", flush=True)
     gpx = list()
     for val in args.gpx_fnames:
         for fname in sorted(glob.glob(val)):
@@ -61,7 +61,7 @@ def main():
     print("done!", flush=True)
 
     # save the legs as pln files
-    print("Writing the PLN files... ", end="", flush=True)
+    print("Writing the PLN file(s)... ", end="", flush=True)
     for i in range(len(legs)):
         counter = str(i+1)
         title = gpx.get_track_name()

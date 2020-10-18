@@ -1,13 +1,14 @@
 import xml.etree.ElementTree
 import LatLon23
+import copy
 
 # DISCLAIMER: I didn't study the GPX file format. I've downloaded a few that are freely available and did 'learning by doing'.
 #             Feel free to improve this! :-)
 
-def _length_of_track_segment(segment, xml_namespace):
-    # all the track points in this segment
-    track_point_nodes = segment.findall("trkpt", xml_namespace)
-    
+MINIMUM_TRACK_SEGMENT_LENGTH = 10.0 # in kilometers
+MAXIMUM_DISTANCE_BETWEEN_SEGMENTS = 50.0 # in kilometers
+
+def _length_of_track_segment(track_point_nodes, xml_namespace):
     # sum up the distance
     distance = 0.0
     for i in range(1, len(track_point_nodes)):
@@ -26,6 +27,137 @@ def _length_of_track_segment(segment, xml_namespace):
     
     # finished
     return distance
+
+def _heading_of_track_segment(track_point_nodes, xml_namespace):
+    # first node
+    lat = LatLon23.Latitude(float(track_point_nodes[0].attrib["lat"]))
+    lon = LatLon23.Longitude(float(track_point_nodes[0].attrib["lon"]))
+    start = LatLon23.LatLon(lat, lon)
+
+    # last node
+    lat = LatLon23.Latitude(float(track_point_nodes[-1].attrib["lat"]))
+    lon = LatLon23.Longitude(float(track_point_nodes[-1].attrib["lon"]))
+    end = LatLon23.LatLon(lat, lon)
+
+    # heading calculation and finish
+    return start.heading_initial(end)
+
+def _distance_between_points(track_point_node_A, track_point_node_B):
+    # first node
+    lat = LatLon23.Latitude(float(track_point_node_A.attrib["lat"]))
+    lon = LatLon23.Longitude(float(track_point_node_A.attrib["lon"]))
+    coord_A = LatLon23.LatLon(lat, lon)
+
+    # second node
+    lat = LatLon23.Latitude(float(track_point_node_B.attrib["lat"]))
+    lon = LatLon23.Longitude(float(track_point_node_B.attrib["lon"]))
+    coord_B = LatLon23.LatLon(lat, lon)
+
+    # finished
+    return coord_A.distance(coord_B)
+
+def _minimal_distance_to_track(new_point, existing_segment):
+    # first node
+    lat = LatLon23.Latitude(float(new_point.attrib["lat"]))
+    lon = LatLon23.Longitude(float(new_point.attrib["lon"]))
+    new_coord = LatLon23.LatLon(lat, lon)
+    
+    # find the minimum distance
+    min_dist = 999999.999
+    for node in existing_segment:
+        # existing node
+        lat = LatLon23.Latitude(float(node.attrib["lat"]))
+        lon = LatLon23.Longitude(float(node.attrib["lon"]))
+        existing_coord = LatLon23.LatLon(lat, lon)
+
+        # distance
+        dist = existing_coord.distance(new_coord)
+        min_dist = min(min_dist, dist)
+    
+    # finished
+    return min_dist
+
+
+def _choose_track_point_nodes(track_segment_nodes, xml_namespace):
+    # collect possible segments
+    segments = list()
+    for node in track_segment_nodes:
+        # find all track points
+        track_point_nodes = node.findall("trkpt", xml_namespace)
+        
+        # info about the forward track
+        cur_len = _length_of_track_segment(track_point_nodes, xml_namespace)
+        cur_heading = _heading_of_track_segment(track_point_nodes, xml_namespace)
+        
+        # info about the reverse track
+        rev_nodes = copy.deepcopy(track_point_nodes)
+        rev_nodes.reverse()
+        rev_heading = _heading_of_track_segment(rev_nodes, xml_namespace)
+
+        # add the track segments that are long enough
+        if cur_len > MINIMUM_TRACK_SEGMENT_LENGTH:
+            segments.append((track_point_nodes, cur_len, cur_heading))
+            segments.append((rev_nodes, cur_len, rev_heading))
+    
+    # no segments at all?
+    if len(segments) == 0:
+        return list()
+    
+    # start with the longest segment
+    max_length = 0
+    max_idx = None
+    for i in range(len(segments)):
+        if segments[i][1] > max_length:
+            max_length = segments[i][1]
+            max_idx = i
+    res_nodes = segments[max_idx][0]
+    del segments[max_idx]
+
+    # add more segments if they actually add distance
+    while True:
+        best_add = 0.0
+        best_idx = None
+        best_at_end = True
+        for i in range(len(segments)):
+            # distance between the new segment and the current end
+            dist_end = _distance_between_points(segments[i][0][0], res_nodes[-1])
+
+            # distance between the new segment and the current start
+            dist_start = _distance_between_points(segments[i][0][0], res_nodes[0])
+
+            # how much does it add?
+            add_dist = _minimal_distance_to_track(segments[i][0][-1], res_nodes)
+
+            # add the segment with the shortest distance to the current but that adds the most
+            if dist_end < dist_start:
+                if dist_end < MAXIMUM_DISTANCE_BETWEEN_SEGMENTS and add_dist > best_add:
+                    best_add = add_dist
+                    best_idx = i
+                    best_at_end = True
+            else:
+                if dist_start < MAXIMUM_DISTANCE_BETWEEN_SEGMENTS and add_dist > best_add:
+                    best_add = add_dist
+                    best_idx = i
+                    best_at_end = False
+        
+        # nothing more found?
+        if best_idx is None:
+            break
+
+        # add the segment
+        if best_at_end:
+            append_nodes = segments[best_idx][0]
+            res_nodes = res_nodes + append_nodes
+        else:
+            prepend_nodes = segments[best_idx][0]
+            prepend_nodes.reverse()
+            res_nodes = prepend_nodes + res_nodes
+        
+        # delete from candidates
+        del segments[best_idx]
+
+    # finished
+    return res_nodes
 
 # representation of a single .gpx file
 class GpxFile:
@@ -61,18 +193,7 @@ class GpxFile:
             self.__authorLinks.add(node.attrib["href"])
         
         # choose track point nodes
-        # TODO: this is currently the maximum length track segment, but we could concat multiple ones here if that seems plausible
-        all_track_segment_nodes = xml_data.findall("./trk/trkseg", xml_namespace)
-        track_segment_node = None
-        max_length = 0.0
-        for node in all_track_segment_nodes:
-            cur_len = _length_of_track_segment(node, xml_namespace)
-            if cur_len > max_length:
-                track_segment_node = node
-                max_length = cur_len
-        track_point_nodes = list()
-        if not track_segment_node is None:
-            track_point_nodes = track_segment_node.findall("trkpt", xml_namespace)
+        track_point_nodes = _choose_track_point_nodes(xml_data.findall("./trk/trkseg", xml_namespace), xml_namespace)
         
         # collect the track coordinates
         if len(track_point_nodes) > 1:

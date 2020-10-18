@@ -5,6 +5,9 @@ import copy
 # DISCLAIMER: I didn't really study the PLN file format. I've exported from Microsoft Flight Simulator 2020 and did 'learning by doing'.
 #             Feel free to improve this! :-) I just kindly request that the export is compatible with Microsoft Flight Simulator 2020.
 
+# add a slight offset to the last waypoint when ending in flight just to see two different points on the map
+DEGREE_OFFSET_END_IN_FLIGHT = 0.1 # in degree
+
 # format geo-coordinates and elevation for the .pln format
 def _coord2str(coord, elevation):
     assert type(coord) == LatLon23.LatLon
@@ -70,8 +73,8 @@ class PlnFile:
             # destination info
             destination_id = "CUSTA"
             destination_type = "Intersection"
-            lat = float(coords[-1].lat) + 0.5
-            lon = float(coords[-1].lon) + 0.5
+            lat = float(coords[-1].lat) + DEGREE_OFFSET_END_IN_FLIGHT
+            lon = float(coords[-1].lon) + DEGREE_OFFSET_END_IN_FLIGHT
             destination_coord = _coord2str(LatLon23.LatLon(lat, lon), self.__flightElevation)
             destination_name = "GPX destination"
             
@@ -103,8 +106,8 @@ class PlnFile:
                     # destination info
                     destination_id = "CUSTA"
                     destination_type = "Intersection"
-                    lat = float(coords[-1].lat) + 0.5
-                    lon = float(coords[-1].lon) + 0.5
+                    lat = float(coords[-1].lat) + DEGREE_OFFSET_END_IN_FLIGHT
+                    lon = float(coords[-1].lon) + DEGREE_OFFSET_END_IN_FLIGHT
                     destination_coord = _coord2str(LatLon23.LatLon(lat, lon), self.__flightElevation)
                     destination_name = "GPX destination"
                 else:

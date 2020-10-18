@@ -36,10 +36,10 @@ class PlnFile:
             self.__flightCoords.append(val)
         
         # save the elevation
-        self.__flightElevation = 10000 # default flight elevation is 10000 feet
+        self.__flightElevation = 10000 # default flight elevation
         if not elevation is None:
             assert type(elevation) == float or type(elevation) == int
-            self.__flightElevation = int(elevation) + 1000
+            self.__flightElevation = max(self.__flightElevation, int(elevation) + 3500)
         assert type(self.__flightElevation) == int and self.__flightElevation > 0
 
     def write(self, fname, airport_db=None):

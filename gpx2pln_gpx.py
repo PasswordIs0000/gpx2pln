@@ -115,7 +115,7 @@ def _choose_track_point_nodes(track_segment_nodes, xml_namespace):
 
     # add more segments if they actually add distance
     while True:
-        best_add = 0.0
+        best_add = MINIMUM_TRACK_SEGMENT_LENGTH
         best_idx = None
         best_at_end = True
         for i in range(len(segments)):

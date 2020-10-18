@@ -21,6 +21,7 @@ def main():
     parser.add_argument("--num_leg_points", type=int, default=5, help="Number of waypoints per leg, departure and arrival inclusive.")
     parser.add_argument("--algorithm", type=str, default="subsample", help="Algorithm for choosing waypoints. Values: 'subsample'.")
     parser.add_argument("--use_airports", type=str, default=None, help="Download airport database to this file. Use nearest airports to departure and destination.")
+    parser.add_argument("--reverse", action="store_true", help="Reverse the flight plan.")
     parser.add_argument("gpx_fnames", type=str, nargs="+", help="Paths to the GPX files to read.")
     args = parser.parse_args()
 
@@ -46,9 +47,15 @@ def main():
     gpx = list()
     for val in args.gpx_fnames:
         for fname in sorted(glob.glob(val)):
-            gpx.append(GpxFile(fname))
+            gpx_part = GpxFile(fname)
+            if len(gpx_part) > 0:
+                gpx.append(gpx_part)
     gpx = GpxConcat(gpx)
     print("done!", flush=True)
+
+    # reverse if requested
+    if args.reverse:
+        gpx.reverse()
 
     # choose waypoints for the flight plan
     print("Choosing waypoints... ", end="", flush=True)

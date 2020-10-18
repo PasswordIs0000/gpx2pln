@@ -222,6 +222,9 @@ class GpxFile:
                     elevation = float(elevation_node.text)
                     self.__maxElevation = max(self.__maxElevation, elevation)
     
+    def __len__(self):
+        return len(self.__trackCoords)
+    
     def get_author_name(self):
         return self.__authorName
     
@@ -239,6 +242,9 @@ class GpxFile:
     
     def get_max_elevation(self):
         return self.__maxElevation
+    
+    def reverse(self):
+        self.__trackCoords.reverse()
 
 # concatenation of multiple .gpx files
 class GpxConcat:
@@ -250,6 +256,21 @@ class GpxConcat:
         self.__trackLinks = set() # all links associated with the track in general
         self.__trackCoords = list()
         self.__maxElevation = None # maximum elevation in feet. none if unknown.
+
+        # reverse individual tracks if necessary to get one continuous track
+        if len(gpx_files) > 1:
+            # reverse the first track if necessary
+            start_dist = gpx_files[0].get_track_coords()[0].distance(gpx_files[1].get_track_coords()[0])
+            end_dist = gpx_files[0].get_track_coords()[-1].distance(gpx_files[1].get_track_coords()[0])
+            if start_dist < end_dist:
+                gpx_files[0].reverse()
+            
+            # reverse all the others if necessary
+            for i in range(1, len(gpx_files)):
+                start_dist = gpx_files[i].get_track_coords()[0].distance(gpx_files[i-1].get_track_coords()[-1])
+                end_dist = gpx_files[i].get_track_coords()[-1].distance(gpx_files[i-1].get_track_coords()[-1])
+                if end_dist < start_dist:
+                    gpx_files[i].reverse()
 
         # collect the values
         for gpx in gpx_files:
@@ -268,6 +289,9 @@ class GpxConcat:
         # convert the author names
         self.__authorName = ", ".join(self.__authorName)
     
+    def __len__(self):
+        return len(self.__trackCoords)
+    
     def get_author_name(self):
         return self.__authorName
     
@@ -285,3 +309,6 @@ class GpxConcat:
     
     def get_max_elevation(self):
         return self.__maxElevation
+    
+    def reverse(self):
+        self.__trackCoords.reverse()

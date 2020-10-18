@@ -4,6 +4,29 @@ import LatLon23
 # DISCLAIMER: I didn't study the GPX file format. I've downloaded a few that are freely available and did 'learning by doing'.
 #             Feel free to improve this! :-)
 
+def _length_of_track_segment(segment, xml_namespace):
+    # all the track points in this segment
+    track_point_nodes = segment.findall("trkpt", xml_namespace)
+    
+    # sum up the distance
+    distance = 0.0
+    for i in range(1, len(track_point_nodes)):
+        # current node
+        lat = LatLon23.Latitude(float(track_point_nodes[i].attrib["lat"]))
+        lon = LatLon23.Longitude(float(track_point_nodes[i].attrib["lon"]))
+        cur = LatLon23.LatLon(lat, lon)
+
+        # previous node
+        lat = LatLon23.Latitude(float(track_point_nodes[i-1].attrib["lat"]))
+        lon = LatLon23.Longitude(float(track_point_nodes[i-1].attrib["lon"]))
+        prev = LatLon23.LatLon(lat, lon)
+
+        # add the distance
+        distance += cur.distance(prev)
+    
+    # finished
+    return distance
+
 # representation of a single .gpx file
 class GpxFile:
     def __init__(self, fname):
@@ -37,14 +60,22 @@ class GpxFile:
         for node in author_link_nodes:
             self.__authorLinks.add(node.attrib["href"])
         
-        # collect the track coordinates
-        # TODO: currently we're using the first track segment in assumption that this is the main track
-        # and other segments are e.g. alternative trail head. we should actually choose the longest segment
-        # or let the user decide.
-        track_segment_node = xml_data.find("./trk/trkseg", xml_namespace)
+        # choose track point nodes
+        # TODO: this is currently the maximum length track segment, but we could concat multiple ones here if that seems plausible
+        all_track_segment_nodes = xml_data.findall("./trk/trkseg", xml_namespace)
+        track_segment_node = None
+        max_length = 0.0
+        for node in all_track_segment_nodes:
+            cur_len = _length_of_track_segment(node, xml_namespace)
+            if cur_len > max_length:
+                track_segment_node = node
+                max_length = cur_len
+        track_point_nodes = list()
         if not track_segment_node is None:
             track_point_nodes = track_segment_node.findall("trkpt", xml_namespace)
-            assert len(track_point_nodes) > 1 # at least two to actually be a track
+        
+        # collect the track coordinates
+        if len(track_point_nodes) > 1:
             for node in track_point_nodes:
                 # raw coordinates as strings
                 lat = node.attrib["lat"]

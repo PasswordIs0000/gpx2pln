@@ -81,16 +81,41 @@ class PlnFile:
             # nearest departure airport
             lat = float(coords[0].lat)
             lon = float(coords[0].lon)
-            departure_id, lat, lon, ele, departure_name = airport_db.find_nearest(lat, lon)
+            departure_id, departure_lat, departure_lon, departure_ele, departure_name = airport_db.find_nearest(lat, lon)
             departure_type = "Airport"
-            departure_coord = _coord2str(LatLon23.LatLon(lat, lon), ele)
+            departure_coord = _coord2str(LatLon23.LatLon(departure_lat, departure_lon), departure_ele)
 
             # nearest destination airport
             lat = float(coords[-1].lat)
             lon = float(coords[-1].lon)
-            destination_id, lat, lon, ele, destination_name = airport_db.find_nearest(lat, lon)
+            destination_id, destination_lat, destination_lon, destination_ele, destination_name = airport_db.find_nearest(lat, lon)
             destination_type = "Airport"
-            destination_coord = _coord2str(LatLon23.LatLon(lat, lon), ele)
+            destination_coord = _coord2str(LatLon23.LatLon(destination_lat, destination_lon), destination_ele)
+
+            # are the two airports the same?
+            if departure_id == destination_id:
+                # distances to the departure and destination
+                departure_dist = coords[0].distance(LatLon23.LatLon(departure_lat, departure_lon))
+                destination_dist = coords[-1].distance(LatLon23.LatLon(destination_lat, destination_lon))
+                
+                # use the airport to the nearest waypoint
+                if departure_dist < destination_dist:
+                    # destination info
+                    destination_id = "CUSTA"
+                    destination_type = "Intersection"
+                    lat = float(coords[-1].lat) + 0.5
+                    lon = float(coords[-1].lon) + 0.5
+                    destination_coord = _coord2str(LatLon23.LatLon(lat, lon), self.__flightElevation)
+                    destination_name = "GPX destination"
+                else:
+                    # departure info
+                    departure_id = "CUSTD"
+                    departure_type = "Intersection"
+                    departure_coord = _coord2str(coords[0], self.__flightElevation)
+                    departure_name = "GPX departure"
+
+                    # trim the coordinates
+                    coords = coords[1:]
 
         # empty xml document
         xml_root = xml.etree.ElementTree.Element("SimBase.Document", {"Type": "AceXML", "version": "1,0"})

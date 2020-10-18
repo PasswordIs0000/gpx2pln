@@ -22,6 +22,7 @@ def main():
     parser.add_argument("--algorithm", type=str, default="subsample", help="Algorithm for choosing waypoints. Values: 'subsample'.")
     parser.add_argument("--use_airports", type=str, default=None, help="Download airport database to this file. Use nearest airports to departure and destination.")
     parser.add_argument("--reverse", action="store_true", help="Reverse the flight plan.")
+    parser.add_argument("--no_local_airports", action="store_true", help="Do not use local airports in flight plans.")
     parser.add_argument("gpx_fnames", type=str, nargs="+", help="Paths to the GPX files to read.")
     args = parser.parse_args()
 
@@ -32,12 +33,12 @@ def main():
 
     # warn the user if not using the airport database
     if args.use_airports is None:
-        print("WARNING: Using the option '--use_airports' is highly recommended! E.g.: --use_airports airports.dat")
+        print("WARNING: Using the option '--use_airports' is highly recommended! E.g.: --use_airports airports.json")
 
     # create the airport database if requested
     airport_db = None
     if not args.use_airports is None:
-        airport_db = AirportDatabase(args.use_airports)
+        airport_db = AirportDatabase(args.use_airports, args.no_local_airports)
 
     # convert the maximum leg length from miles to kilometres
     max_leg_length = None if args.max_leg_length is None else args.max_leg_length * 1.609344

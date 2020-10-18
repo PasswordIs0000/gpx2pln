@@ -11,12 +11,18 @@ def _add_mwgg_to_database(db):
     mwgg_dict = json.loads(mwgg_blob.decode("utf-8"))
     for icao, info in mwgg_dict.items():
         icao = str(icao).upper()
+        iata = info["iata"]
+        if type(iata) == str and len(iata) == 0:
+            iata = None
+        if type(iata) == str:
+            iata = iata.upper()
         db[icao] = {
             "lat": float(info["lat"]),
             "lon": float(info["lon"]),
             "elevation": int(info["elevation"]),
             "name": str(info["name"]),
-            "local_code": None
+            "local_code": None,
+            "iata": iata
         }
 
 def _add_ourairports_com_to_database(db):
@@ -29,6 +35,13 @@ def _add_ourairports_com_to_database(db):
             continue
         icao = str(info["ident"]).upper()
         local_code = str(info["local_code"]).upper()
+        iata = info["iata_code"]
+        if len(iata) == 0:
+            iata = None
+        else:
+            iata = iata.upper()
+        if iata is None and icao in db:
+            iata = db[icao]["iata"]
         if len(local_code) == 0 or local_code == icao:
             local_code = None
         ele = str(info["elevation_ft"])
@@ -42,11 +55,12 @@ def _add_ourairports_com_to_database(db):
             "lon": float(info["longitude_deg"]),
             "elevation": int(ele),
             "name": str(info["name"]),
-            "local_code": local_code
+            "local_code": local_code,
+            "iata": iata
         }
 
 class AirportDatabase:
-    def __init__(self, fname):
+    def __init__(self, fname, no_local_airports):
         # airports dictionary
         self.__airportDict = dict()
 
@@ -76,11 +90,19 @@ class AirportDatabase:
                 json.dump(self.__airportDict, fd)
             print("done!", flush=True)
         
+        # filter the airports if requested
+        if no_local_airports:
+            filtered_dict = dict()
+            for icao, info in self.__airportDict.items():
+                if not info["iata"] is None:
+                    filtered_dict[icao] = info
+            self.__airportDict = filtered_dict
+        
         # print the number of airports in the database
         print("Using a total of %i airports!" % (len(self.__airportDict)))
 
         # store the airport codes searchable by their latitude and longitude as integers
-        assert len(self.__airportDict) > 25000 # there should be a few airports...
+        assert len(self.__airportDict) > 0
         self.__idxLat = [None] * 360
         self.__idxLon = [None] * 360
         for icao, info in self.__airportDict.items():
@@ -137,6 +159,7 @@ class AirportDatabase:
         # retrieve information about the nearest airport
         info = self.__airportDict[nearest_icao]
         if not info["local_code"] is None:
+            # TODO: need to figure out when to use the local code and when not
             nearest_icao = info["local_code"]
         nearest_lat = info["lat"]
         nearest_lon = info["lon"]

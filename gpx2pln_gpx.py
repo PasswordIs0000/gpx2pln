@@ -125,17 +125,21 @@ def _choose_track_point_nodes(track_segment_nodes, xml_namespace):
             # distance between the new segment and the current start
             dist_start = _distance_between_points(segments[i][0][0], res_nodes[0])
 
+            # is this a candidate?
+            if not min(dist_end, dist_start) < MAXIMUM_DISTANCE_BETWEEN_SEGMENTS:
+                continue
+
             # how much does it add?
             add_dist = _minimal_distance_to_track(segments[i][0][-1], res_nodes)
 
             # add the segment with the shortest distance to the current but that adds the most
             if dist_end < dist_start:
-                if dist_end < MAXIMUM_DISTANCE_BETWEEN_SEGMENTS and add_dist > best_add:
+                if add_dist > best_add:
                     best_add = add_dist
                     best_idx = i
                     best_at_end = True
             else:
-                if dist_start < MAXIMUM_DISTANCE_BETWEEN_SEGMENTS and add_dist > best_add:
+                if add_dist > best_add:
                     best_add = add_dist
                     best_idx = i
                     best_at_end = False

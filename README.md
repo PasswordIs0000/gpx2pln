@@ -34,4 +34,4 @@ Currently supported parameters are:
 - **max_leg_length** to limit the maximum length of one leg in miles. The flight plan will be split into multiple parts if necessary.
 - **num_leg_points** the number of waypoints per leg. More will result in a flight plan that better follows the GPX track but has more curves to fly.
 - **algorithm** selects the algorithm applied to choose a subset of waypoints for each leg or generate new waypoints alltogether.
-- **use_airports** uses a database of airports/airfields and chooses the nearest ones for departure and destination on each leg.
+- **use_airports** uses a database of airports/airfields and chooses the nearest ones for departure and destination on each leg. Automatically downloads and saves the airport database if the file is not existing or older than 2 weeks.

@@ -1,36 +1,86 @@
 import urllib.request
 import json
 import os
-import gzip
 import datetime
 import LatLon23
+import csv
+import io
+
+def _add_mwgg_to_database(db):
+    mwgg_blob = urllib.request.urlopen("https://github.com/mwgg/Airports/raw/master/airports.json").read()
+    mwgg_dict = json.loads(mwgg_blob.decode("utf-8"))
+    for icao, info in mwgg_dict.items():
+        icao = str(icao).upper()
+        db[icao] = {
+            "lat": float(info["lat"]),
+            "lon": float(info["lon"]),
+            "elevation": int(info["elevation"]),
+            "name": str(info["name"]),
+            "local_code": None
+        }
+
+def _add_ourairports_com_to_database(db):
+    ourairports_blob = urllib.request.urlopen("https://ourairports.com/data/airports.csv").read()
+    ourairports_fd = io.StringIO(ourairports_blob.decode("utf-8"))
+    ourairports_reader = csv.DictReader(ourairports_fd, dialect="excel")
+    for info in ourairports_reader:
+        type = info["type"]
+        if type in ("closed", "heliport", "seaplane_base"):
+            continue
+        icao = str(info["ident"]).upper()
+        local_code = str(info["local_code"]).upper()
+        if len(local_code) == 0 or local_code == icao:
+            local_code = None
+        ele = str(info["elevation_ft"])
+        if len(ele) == 0:
+            if icao in db:
+                ele = db[icao]["elevation"]
+            else:
+                continue
+        db[icao] = {
+            "lat": float(info["latitude_deg"]),
+            "lon": float(info["longitude_deg"]),
+            "elevation": int(ele),
+            "name": str(info["name"]),
+            "local_code": local_code
+        }
 
 class AirportDatabase:
     def __init__(self, fname):
-        # open the database if possible
-        db_blob = None
+        # airports dictionary
+        self.__airportDict = dict()
+
+        # load from file if possible
         if os.path.isfile(fname):
             file_dtime = datetime.datetime.utcfromtimestamp(os.path.getmtime(fname))
             cur_dtime = datetime.datetime.utcnow()
             if (cur_dtime-file_dtime) < datetime.timedelta(weeks=2):
                 print("Loading the airports database... ", end="", flush=True)
-                with gzip.open(fname, "rb") as fd:
-                    db_blob = fd.read()
+                with open(fname, "r") as fd:
+                    self.__airportDict = json.load(fd)
                 print("done!", flush=True)
         
-        # download the database if necessary
-        if db_blob is None:
+        # download and fill necessary
+        save_database = False
+        if len(self.__airportDict) == 0:
+            save_database = True
             print("Downloading the airports database... ", end="", flush=True)
-            db_blob = urllib.request.urlopen("https://github.com/mwgg/Airports/raw/master/airports.json").read()
-            with gzip.open(fname, "wb") as fd:
-                fd.write(db_blob)
+            _add_mwgg_to_database(self.__airportDict)
+            _add_ourairports_com_to_database(self.__airportDict)
             print("done!", flush=True)
         
-        # decode the json
-        self.__airportDict = json.loads(db_blob.decode("utf-8"))
-        assert len(self.__airportDict) > 25000 # there should be a few airports...
+        # save the database if necessary
+        if save_database:
+            print("Saving the airports database... ", end="", flush=True)
+            with open(fname, "w") as fd:
+                json.dump(self.__airportDict, fd)
+            print("done!", flush=True)
+        
+        # print the number of airports in the database
+        print("Using a total of %i airports!" % (len(self.__airportDict)))
 
         # store the airport codes searchable by their latitude and longitude as integers
+        assert len(self.__airportDict) > 25000 # there should be a few airports...
         self.__idxLat = [None] * 360
         self.__idxLon = [None] * 360
         for icao, info in self.__airportDict.items():
@@ -86,6 +136,8 @@ class AirportDatabase:
         
         # retrieve information about the nearest airport
         info = self.__airportDict[nearest_icao]
+        if not info["local_code"] is None:
+            nearest_icao = info["local_code"]
         nearest_lat = info["lat"]
         nearest_lon = info["lon"]
         nearest_ele = info["elevation"]

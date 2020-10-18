@@ -11,11 +11,17 @@ General features are:
 - If requested, split down the total flight plan into legs of a specific maximum length.
 - If requested, find the nearest airports/airfields and use them as departure and destination of each leg.
 
-Uses https://github.com/mwgg/Airports to find the nearest airports to the departure and destination if requested. Cheers to the authors!
+## Disclaimer
+
+Uses data from https://github.com/mwgg/Airports and https://ourairports.com/data/ to find the nearest airports to the departure and destination if requested.
+
+Uses https://github.com/hickeroar/LatLon23 for calculations with geo-coordinates.
+
+Cheers and much thanks to the authors!
 
 ## Usage
 
-This is a command line tool, written in Python 3.8. Additional dependencies are listed in requirements.txt for *pip*, but can also be found in Anaconda. An example call would be:
+This is a command line tool, written in Python 3.8. An example call would be:
     
     python gpx2pln.py --pln_stem kungsleden --use_airports airports.dat Kungsleden.gpx
 

@@ -120,29 +120,34 @@ def _choose_track_point_nodes(track_segment_nodes, xml_namespace):
         best_at_end = True
         for i in range(len(segments)):
             # distance between the new segment and the current end
-            dist_end = _distance_between_points(segments[i][0][0], res_nodes[-1])
+            dist_end = _distance_between_points(res_nodes[-1], segments[i][0][0])
 
             # distance between the new segment and the current start
-            dist_start = _distance_between_points(segments[i][0][0], res_nodes[0])
+            dist_start = _distance_between_points(segments[i][0][-1], res_nodes[0])
 
             # is this a candidate?
             if not min(dist_end, dist_start) < MAXIMUM_DISTANCE_BETWEEN_SEGMENTS:
                 continue
 
-            # how much does it add?
-            add_dist = _minimal_distance_to_track(segments[i][0][-1], res_nodes)
-
-            # add the segment with the shortest distance to the current but that adds the most
+            # different cases for prepending or appending
             if dist_end < dist_start:
+                # how much does it add?
+                add_dist = _minimal_distance_to_track(segments[i][0][-1], res_nodes)
+
+                # use if best so far
                 if add_dist > best_add:
                     best_add = add_dist
                     best_idx = i
                     best_at_end = True
             else:
+                # how much does it add?
+                add_dist = _minimal_distance_to_track(segments[i][0][0], res_nodes)
+
+                # use if best so far
                 if add_dist > best_add:
                     best_add = add_dist
                     best_idx = i
-                    best_at_end = False
+                    best_at_end = False                    
         
         # nothing more found?
         if best_idx is None:
@@ -154,7 +159,6 @@ def _choose_track_point_nodes(track_segment_nodes, xml_namespace):
             res_nodes = res_nodes + append_nodes
         else:
             prepend_nodes = segments[best_idx][0]
-            prepend_nodes.reverse()
             res_nodes = prepend_nodes + res_nodes
         
         # delete from candidates

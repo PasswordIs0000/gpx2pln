@@ -52,7 +52,11 @@ def main():
 
     # choose waypoints for the flight plan
     print("Choosing waypoints... ", end="", flush=True)
-    legs = gpx2pln_subsample.subsample(gpx.get_track_coords(), max_leg_length, args.num_leg_points)
+    legs = None
+    if args.algorithm == "subsample":
+        legs = gpx2pln_subsample.subsample(gpx.get_track_coords(), max_leg_length, args.num_leg_points)
+    else:
+        raise NotImplementedError
     assert type(legs) == list and len(legs) > 0
     print("done!", flush=True)
 

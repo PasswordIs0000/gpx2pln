@@ -16,7 +16,7 @@ def _debug_print_leg(coords):
 def main():
     # parse command line arguments
     parser = argparse.ArgumentParser(description="Convert a GPX file to one or multiple PLN files for import in a flight simulator.")
-    parser.add_argument("--pln_stem", type=str, default="gpx2pln", help="Stem for generating paths to the PLN files to write.")
+    parser.add_argument("--pln_stem", type=str, default=None, help="Stem for generating paths to the PLN files to write.")
     parser.add_argument("--max_leg_length", type=int, default=500, help="Maximum length of one leg in miles.")
     parser.add_argument("--num_leg_points", type=int, default=5, help="Number of waypoints per leg, departure and arrival inclusive.")
     parser.add_argument("--algorithm", type=str, default="subsample", help="Algorithm for choosing waypoints. Values: 'subsample'.")
@@ -40,14 +40,22 @@ def main():
 
     # read the gpx files
     print("Processing the GPX file(s)... ", end="", flush=True)
+    random_gpx_fname = None
     gpx = list()
     for val in args.gpx_fnames:
         for fname in sorted(glob.glob(val)):
+            random_gpx_fname = fname
             gpx_part = GpxFile(fname)
             if len(gpx_part) > 0:
                 gpx.append(gpx_part)
     gpx = GpxConcat(gpx)
     print("done!", flush=True)
+
+    # choose a default pln stem
+    default_pln_stem = os.path.split(random_gpx_fname)[-1][:-4]
+    pln_stem = args.pln_stem
+    if pln_stem is None:
+        pln_stem = default_pln_stem
 
     # reverse if requested
     if args.reverse:
@@ -75,7 +83,7 @@ def main():
         title += " (" + counter + ")"
         description = gpx.get_track_name() + " by " + gpx.get_author_name()
         pln = PlnFile(title, description, legs[i], elevation=gpx.get_max_elevation())
-        pln.write(args.pln_stem + "_" + counter + ".pln", airport_db)
+        pln.write(pln_stem + "_" + counter + ".pln", airport_db)
     print("done!", flush=True)
 
 if __name__ == "__main__":

@@ -13,9 +13,9 @@ General features are:
 
 ## Disclaimer
 
-Uses data from https://github.com/mwgg/Airports and https://ourairports.com/data/ to find the nearest airports to the departure and destination if requested.
+Uses data from [GitHub/mwgg](https://github.com/mwgg/Airports) and [OurAirports](https://ourairports.com/data/) to find the nearest airports to the departure and destination. Imports airport database from [Little Navmap](https://albar965.github.io/littlenavmap.html) if found on the machine.
 
-Uses https://github.com/hickeroar/LatLon23 for calculations with geo-coordinates.
+Uses [LatLon23](https://github.com/hickeroar/LatLon23) for calculations with geo-coordinates.
 
 Cheers and much thanks to the authors!
 

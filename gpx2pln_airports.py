@@ -1,3 +1,4 @@
+from sqlite3.dbapi2 import connect
 import urllib.request
 import json
 import os
@@ -5,6 +6,7 @@ import datetime
 import LatLon23
 import csv
 import io
+import sqlite3
 
 def _add_mwgg_to_database(db):
     mwgg_blob = urllib.request.urlopen("https://github.com/mwgg/Airports/raw/master/airports.json").read()
@@ -59,10 +61,33 @@ def _add_ourairports_com_to_database(db):
             "iata": iata
         }
 
+def _add_lnv_to_database(db, fname):
+    # connect to the database
+    connection = sqlite3.connect(fname)
+    cursor = connection.cursor()
+
+    # select the required values
+    cursor.execute("SELECT ident,name,icao,iata,lonx,laty,altitude FROM airport")
+
+    # add the values to the database
+    for val in cursor:
+        ident = str(val[0]).upper()
+        db[ident] = {
+            "lat": float(val[5]),
+            "lon": float(val[4]),
+            "elevation": int(val[6]),
+            "name": str(val[1]),
+            "local_code": None,
+            "iata": str(val[3])
+        }
+
 class AirportDatabase:
     def __init__(self, fname, no_local_airports):
         # airports dictionary
         self.__airportDict = dict()
+
+        # path to the little navmap database
+        lnv_db_fname = os.environ["APPDATA"] + "\\ABarthel\little_navmap_db\\little_navmap_msfs.sqlite"
 
         # load from file if possible
         if os.path.isfile(fname):
@@ -78,10 +103,15 @@ class AirportDatabase:
         save_database = False
         if len(self.__airportDict) == 0:
             save_database = True
-            print("Downloading the airports database... ", end="", flush=True)
-            _add_mwgg_to_database(self.__airportDict)
-            _add_ourairports_com_to_database(self.__airportDict)
-            print("done!", flush=True)
+            if os.path.isfile(lnv_db_fname):
+                print("Importing the Little Navmap database... ", end="", flush=True)
+                _add_lnv_to_database(self.__airportDict, lnv_db_fname)
+                print("done!", flush=True)
+            else:
+                print("Downloading the airports database... ", end="", flush=True)
+                _add_mwgg_to_database(self.__airportDict)
+                _add_ourairports_com_to_database(self.__airportDict)
+                print("done!", flush=True)
         
         # save the database if necessary
         if save_database:

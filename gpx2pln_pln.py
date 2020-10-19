@@ -42,7 +42,10 @@ class PlnFile:
             self.__flightElevation = max(self.__flightElevation, int(elevation) + 3500)
         assert type(self.__flightElevation) == int and self.__flightElevation > 0
 
-    def write(self, fname, airport_db=None):
+    def write(self, fname, airport_db):
+        # sanity checks
+        assert not airport_db is None
+
         # select waypoints to write
         coords = copy.deepcopy(self.__flightCoords)
 
@@ -52,73 +55,44 @@ class PlnFile:
         # will finish in the air.
         # this looks strange on the world map when planning a flight, but the vfr map seems to be okay.
 
-        # just so we have variable names to fill
-        departure_id = None
-        departure_type = None
-        departure_coord = None
-        departure_name = None
-        destination_id = None
-        destination_type = None
-        destination_coord = None
-        destination_name = None
-        
-        # set the departure, destination and waypoints correctly
-        if airport_db is None:
-            # departure info
-            departure_id = "CUSTD"
-            departure_type = "Intersection"
-            departure_coord = _coord2str(coords[0], self.__flightElevation)
-            departure_name = "GPX departure"
+        # nearest departure airport
+        lat = float(coords[0].lat)
+        lon = float(coords[0].lon)
+        departure_id, departure_lat, departure_lon, departure_ele, departure_name = airport_db.find_nearest(lat, lon)
+        departure_type = "Airport"
+        departure_coord = _coord2str(LatLon23.LatLon(departure_lat, departure_lon), departure_ele)
+
+        # nearest destination airport
+        lat = float(coords[-1].lat)
+        lon = float(coords[-1].lon)
+        destination_id, destination_lat, destination_lon, destination_ele, destination_name = airport_db.find_nearest(lat, lon)
+        destination_type = "Airport"
+        destination_coord = _coord2str(LatLon23.LatLon(destination_lat, destination_lon), destination_ele)
+
+        # are the two airports the same?
+        if departure_id == destination_id:
+            # distances to the departure and destination
+            departure_dist = coords[0].distance(LatLon23.LatLon(departure_lat, departure_lon))
+            destination_dist = coords[-1].distance(LatLon23.LatLon(destination_lat, destination_lon))
             
-            # destination info
-            destination_id = "CUSTA"
-            destination_type = "Intersection"
-            lat = float(coords[-1].lat) + DEGREE_OFFSET_END_IN_FLIGHT
-            lon = float(coords[-1].lon) + DEGREE_OFFSET_END_IN_FLIGHT
-            destination_coord = _coord2str(LatLon23.LatLon(lat, lon), self.__flightElevation)
-            destination_name = "GPX destination"
-            
-            # trim the coordinates
-            coords = coords[1:]
-        else:
-            # nearest departure airport
-            lat = float(coords[0].lat)
-            lon = float(coords[0].lon)
-            departure_id, departure_lat, departure_lon, departure_ele, departure_name = airport_db.find_nearest(lat, lon)
-            departure_type = "Airport"
-            departure_coord = _coord2str(LatLon23.LatLon(departure_lat, departure_lon), departure_ele)
+            # use the airport to the nearest waypoint
+            if departure_dist < destination_dist:
+                # destination info
+                destination_id = "CUSTA"
+                destination_type = "Intersection"
+                lat = float(coords[-1].lat) + DEGREE_OFFSET_END_IN_FLIGHT
+                lon = float(coords[-1].lon) + DEGREE_OFFSET_END_IN_FLIGHT
+                destination_coord = _coord2str(LatLon23.LatLon(lat, lon), self.__flightElevation)
+                destination_name = "GPX destination"
+            else:
+                # departure info
+                departure_id = "CUSTD"
+                departure_type = "Intersection"
+                departure_coord = _coord2str(coords[0], self.__flightElevation)
+                departure_name = "GPX departure"
 
-            # nearest destination airport
-            lat = float(coords[-1].lat)
-            lon = float(coords[-1].lon)
-            destination_id, destination_lat, destination_lon, destination_ele, destination_name = airport_db.find_nearest(lat, lon)
-            destination_type = "Airport"
-            destination_coord = _coord2str(LatLon23.LatLon(destination_lat, destination_lon), destination_ele)
-
-            # are the two airports the same?
-            if departure_id == destination_id:
-                # distances to the departure and destination
-                departure_dist = coords[0].distance(LatLon23.LatLon(departure_lat, departure_lon))
-                destination_dist = coords[-1].distance(LatLon23.LatLon(destination_lat, destination_lon))
-                
-                # use the airport to the nearest waypoint
-                if departure_dist < destination_dist:
-                    # destination info
-                    destination_id = "CUSTA"
-                    destination_type = "Intersection"
-                    lat = float(coords[-1].lat) + DEGREE_OFFSET_END_IN_FLIGHT
-                    lon = float(coords[-1].lon) + DEGREE_OFFSET_END_IN_FLIGHT
-                    destination_coord = _coord2str(LatLon23.LatLon(lat, lon), self.__flightElevation)
-                    destination_name = "GPX destination"
-                else:
-                    # departure info
-                    departure_id = "CUSTD"
-                    departure_type = "Intersection"
-                    departure_coord = _coord2str(coords[0], self.__flightElevation)
-                    departure_name = "GPX departure"
-
-                    # trim the coordinates
-                    coords = coords[1:]
+                # trim the coordinates
+                coords = coords[1:]
 
         # empty xml document
         xml_root = xml.etree.ElementTree.Element("SimBase.Document", {"Type": "AceXML", "version": "1,0"})

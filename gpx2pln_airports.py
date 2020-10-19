@@ -82,7 +82,7 @@ def _add_lnv_to_database(db, fname):
         }
 
 class AirportDatabase:
-    def __init__(self, fname, no_local_airports):
+    def __init__(self, fname):
         # airports dictionary
         self.__airportDict = dict()
 
@@ -119,14 +119,6 @@ class AirportDatabase:
             with open(fname, "w") as fd:
                 json.dump(self.__airportDict, fd)
             print("done!", flush=True)
-        
-        # filter the airports if requested
-        if no_local_airports:
-            filtered_dict = dict()
-            for icao, info in self.__airportDict.items():
-                if not info["iata"] is None:
-                    filtered_dict[icao] = info
-            self.__airportDict = filtered_dict
         
         # print the number of airports in the database
         print("Using a total of %i airports!" % (len(self.__airportDict)))

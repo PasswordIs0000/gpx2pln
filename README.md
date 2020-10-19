@@ -7,9 +7,9 @@ Tool to load a bunch of .gpx files and the tracks contained in them. Write the c
 General features are:
 - Load one or more GPX files and concatenate them in order to retrieve a full track. For example the GPX track for the PCT is split into sections.
 - Find a reasonable small amount of waypoints to use in a flight plan that still follow along the original track.
-- Export the generated flight plan in one or multiple PLN files that can be loaded into Microsoft Flight Simulator 2020.
 - If requested, split down the total flight plan into legs of a specific maximum length.
-- If requested, find the nearest airports/airfields and use them as departure and destination of each leg.
+- Find nearest airports to the start and end of each leg to use as departure and destination.
+- Export the generated flight plan in one or multiple PLN files that can be loaded into Microsoft Flight Simulator 2020.
 
 ## Disclaimer
 
@@ -40,6 +40,4 @@ Currently supported parameters are:
 - **max_leg_length** to limit the maximum length of one leg in miles. The flight plan will be split into multiple parts if necessary.
 - **num_leg_points** the number of waypoints per leg. More will result in a flight plan that better follows the GPX track but has more curves to fly.
 - **algorithm** selects the algorithm applied to choose a subset of waypoints for each leg or generate new waypoints alltogether.
-- **use_airports** uses a database of airports/airfields and chooses the nearest ones for departure and destination on each leg. Automatically downloads and saves the airport database if the file is not existing or older than 2 weeks.
-- **reverse** reverse the direction of the flight.
-- **no_local_airports** do not use local airports for the flight.
+- **reverse** does indeed reverse the direction of the flight.

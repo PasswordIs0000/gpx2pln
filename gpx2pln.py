@@ -20,9 +20,7 @@ def main():
     parser.add_argument("--max_leg_length", type=int, default=None, help="Maximum length of one leg in miles.")
     parser.add_argument("--num_leg_points", type=int, default=5, help="Number of waypoints per leg, departure and arrival inclusive.")
     parser.add_argument("--algorithm", type=str, default="subsample", help="Algorithm for choosing waypoints. Values: 'subsample'.")
-    parser.add_argument("--use_airports", type=str, default=None, help="Download airport database to this file. Use nearest airports to departure and destination.")
     parser.add_argument("--reverse", action="store_true", help="Reverse the flight plan.")
-    parser.add_argument("--no_local_airports", action="store_true", help="Do not use local airports in flight plans.")
     parser.add_argument("gpx_fnames", type=str, nargs="+", help="Paths to the GPX files to read.")
     args = parser.parse_args()
 
@@ -31,14 +29,11 @@ def main():
     assert args.num_leg_points >= 2
     assert args.algorithm in ["subsample"]
 
-    # warn the user if not using the airport database
-    if args.use_airports is None:
-        print("WARNING: Using the option '--use_airports' is highly recommended! E.g.: --use_airports airports.json")
+    # path to the airports database
+    airports_json = os.environ["APPDATA"] + "\\gpx2pln_airports.json"
 
     # create the airport database if requested
-    airport_db = None
-    if not args.use_airports is None:
-        airport_db = AirportDatabase(args.use_airports, args.no_local_airports)
+    airport_db = AirportDatabase(airports_json)
 
     # convert the maximum leg length from miles to kilometres
     max_leg_length = None if args.max_leg_length is None else args.max_leg_length * 1.609344
@@ -80,7 +75,7 @@ def main():
         title += " (" + counter + ")"
         description = gpx.get_track_name() + " by " + gpx.get_author_name()
         pln = PlnFile(title, description, legs[i], elevation=gpx.get_max_elevation())
-        pln.write(args.pln_stem + "_" + counter + ".pln", airport_db=airport_db)
+        pln.write(args.pln_stem + "_" + counter + ".pln", airport_db)
     print("done!", flush=True)
 
 if __name__ == "__main__":

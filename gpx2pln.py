@@ -21,6 +21,7 @@ def main():
     parser.add_argument("--num_leg_points", type=int, default=5, help="Number of waypoints per leg, departure and arrival inclusive.")
     parser.add_argument("--algorithm", type=str, default="subsample", help="Algorithm for choosing waypoints. Values: 'subsample'.")
     parser.add_argument("--reverse", action="store_true", help="Reverse the flight plan.")
+    parser.add_argument("--reset_airports", action="store_true", help="Reset the airports database.")
     parser.add_argument("gpx_fnames", type=str, nargs="+", help="Paths to the GPX files to read.")
     args = parser.parse_args()
 
@@ -31,6 +32,10 @@ def main():
 
     # path to the airports database
     airports_json = os.environ["APPDATA"] + "\\gpx2pln_airports.json"
+
+    # delete the airports database if requested
+    if args.reset_airports and os.path.isfile(airports_json):
+        os.remove(airports_json)
 
     # create the airport database if requested
     airport_db = AirportDatabase(airports_json)

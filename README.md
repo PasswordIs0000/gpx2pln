@@ -11,6 +11,12 @@ General features are:
 - Find nearest airports to the start and end of each leg to use as departure and destination.
 - Export the generated flight plan in one or multiple PLN files that can be loaded into Microsoft Flight Simulator 2020.
 
+## A Word on Airports
+
+I really recommend to download the MSFS-compatible version of [Little Navmap](https://albar965.github.io/littlenavmap.html) and start it at least once. It will parse the Microsoft Flight Simulator 2020 packages and generate a database of airports in the simulation. This database will again be detected and used by gpx2pln in order to find the nearest airports to the legs that are created. This is really nice if you want to start and land on an actual airport in the simulation.
+
+Not using [Little Navmap](https://albar965.github.io/littlenavmap.html) will result in gpx2pln using other airport databases (see below), which may work but there is also a chance that the airport is not in the simulation or uses a different ICAO code and thus you will start or end your flight in the air above the not existing airport.
+
 ## Disclaimer
 
 Uses data from [GitHub/mwgg](https://github.com/mwgg/Airports) and [OurAirports](https://ourairports.com/data/) to find the nearest airports to the departure and destination. Imports airport database from [Little Navmap](https://albar965.github.io/littlenavmap.html) if found on the machine.

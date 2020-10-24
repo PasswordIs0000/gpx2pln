@@ -2,6 +2,7 @@ import argparse
 import os
 import glob
 import multiprocessing
+import matplotlib.pyplot as plt
 
 from gpx2pln_gpx import GpxFile, GpxConcat
 from gpx2pln_pln import PlnFile
@@ -14,11 +15,33 @@ def _debug_print_leg(coords):
     for c in coords:
         print("%s,%s" % (c.lat,c.lon))
 
+# worker function for reading/processing gpx files in multiple processes
 def _worker_gpx_fname_to_obj(fname):
     obj = GpxFile(fname)
     if len(obj) > 0:
         return obj
     return None
+
+def _plot_gpx_and_pln(gpx_track, pln_legs, fname):
+    # convert gpx to two lists
+    gpx_track = [(float(x.lat), float(x.lon)) for x in gpx_track]
+    gpx_lat, gpx_lon = zip(*gpx_track)
+    
+    # plot the gpx track as dots
+    plt.plot(gpx_lon, gpx_lat, color="gray", marker=".", linestyle="none")
+
+    # plot the pln legs
+    for i in range(len(pln_legs)):
+        # convert the leg to two lists
+        pln_track = [(float(x.lat), float(x.lon)) for x in pln_legs[i]]
+        pln_lat, pln_lon = zip(*pln_track)
+
+        # plot the pln leg as lines
+        pln_color = "blue" if (i % 2) == 0 else "green"
+        plt.plot(pln_lon, pln_lat, color=pln_color, marker="o", linestyle="-")
+
+    # save to file
+    plt.savefig(fname, dpi=300)
 
 def main():
     # parse command line arguments
@@ -96,6 +119,11 @@ def main():
         description = gpx.get_track_name() + " by " + gpx.get_author_name()
         pln = PlnFile(title, description, legs[i], elevation=gpx.get_max_elevation())
         pln.write(pln_stem + "_" + counter + ".pln", airport_db)
+    print("done!", flush=True)
+
+    # plot the result
+    print("Plotting the result... ", end="", flush=True)
+    _plot_gpx_and_pln(gpx.get_track_coords(), legs, pln_stem + ".jpg")
     print("done!", flush=True)
 
 if __name__ == "__main__":

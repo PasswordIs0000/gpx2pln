@@ -1,4 +1,3 @@
-from sqlite3.dbapi2 import connect
 import urllib.request
 import json
 import os

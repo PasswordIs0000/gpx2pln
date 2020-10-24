@@ -1,6 +1,19 @@
 import LatLon23
 
+MINIMUM_DISTANCE_BETWEEN_POINTS = 0.1 # in kilometers
+
 def subsample(coords, max_leg_length, num_leg_points):
+    # remove points that are too near to each other
+    filtered_coords = [coords[0]]
+    last_coord = coords[0]
+    for c in coords[1:]:
+        if last_coord.distance(c) > MINIMUM_DISTANCE_BETWEEN_POINTS:
+            filtered_coords.append(c)
+            last_coord = c
+    if last_coord != coords[-1]:
+        filtered_coords.append(coords[-1])
+    coords = filtered_coords
+
     # split the track into legs if requested
     raw_legs = [coords]
     if not max_leg_length is None:

@@ -1,6 +1,7 @@
 import argparse
 import os
 import glob
+import multiprocessing
 
 from gpx2pln_gpx import GpxFile, GpxConcat
 from gpx2pln_pln import PlnFile
@@ -12,6 +13,12 @@ import gpx2pln_subsample
 def _debug_print_leg(coords):
     for c in coords:
         print("%s,%s" % (c.lat,c.lon))
+
+def _worker_gpx_fname_to_obj(fname):
+    obj = GpxFile(fname)
+    if len(obj) > 0:
+        return obj
+    return None
 
 def main():
     # parse command line arguments
@@ -43,21 +50,21 @@ def main():
     # convert the maximum leg length from miles to kilometres
     max_leg_length = None if args.max_leg_length is None else args.max_leg_length * 1.609344
 
+    # pool for multi-processing
+    thread_pool = multiprocessing.Pool()
+
     # read the gpx files
     print("Processing the GPX file(s)... ", end="", flush=True)
-    random_gpx_fname = None
-    gpx = list()
+    gpx_fnames = list()
     for val in args.gpx_fnames:
-        for fname in sorted(glob.glob(val)):
-            random_gpx_fname = fname
-            gpx_part = GpxFile(fname)
-            if len(gpx_part) > 0:
-                gpx.append(gpx_part)
+        gpx_fnames += sorted(glob.glob(val))
+    gpx_raw = thread_pool.map(_worker_gpx_fname_to_obj, gpx_fnames)
+    gpx = [x for x in gpx_raw if not x is None]
     gpx = GpxConcat(gpx)
     print("done!", flush=True)
 
     # choose a default pln stem
-    default_pln_stem = os.path.split(random_gpx_fname)[-1][:-4]
+    default_pln_stem = os.path.split(gpx_fnames[0])[-1][:-4]
     pln_stem = args.pln_stem
     if pln_stem is None:
         pln_stem = default_pln_stem

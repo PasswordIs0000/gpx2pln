@@ -21,7 +21,7 @@ Not using [Little Navmap](https://albar965.github.io/littlenavmap.html) will res
 
 Uses data from [GitHub/mwgg](https://github.com/mwgg/Airports) and [OurAirports](https://ourairports.com/data/) to find the nearest airports to the departure and destination. Imports airport database from [Little Navmap](https://albar965.github.io/littlenavmap.html) if found on the machine.
 
-Uses [LatLon23](https://github.com/hickeroar/LatLon23) for calculations with geo-coordinates.
+Uses [LatLon23](https://github.com/hickeroar/LatLon23) for calculations with geo-coordinates. Used [Scikit-Image](https://scikit-image.org/) for polygon subdivision and approximation algorithms.
 
 Cheers and much thanks to the authors!
 

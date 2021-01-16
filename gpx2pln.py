@@ -9,6 +9,7 @@ from gpx2pln_pln import PlnFile
 from gpx2pln_airports import AirportDatabase
 
 import gpx2pln_subsample
+import gpx2pln_douglas_peucker
 
 # only for debugging. coordinates can be copy-pasted into microsoft flight simulator.
 def _debug_print_leg(coords):
@@ -49,7 +50,7 @@ def main():
     parser.add_argument("--pln_stem", type=str, default=None, help="Stem for generating paths to the PLN files to write.")
     parser.add_argument("--max_leg_length", type=int, default=500, help="Maximum length of one leg in miles.")
     parser.add_argument("--num_leg_points", type=int, default=5, help="Number of waypoints per leg, departure and arrival inclusive.")
-    parser.add_argument("--algorithm", type=str, default="subsample", help="Algorithm for choosing waypoints. Values: 'subsample'.")
+    parser.add_argument("--algorithm", type=str, default="subsample", help="Algorithm for choosing waypoints. Values: 'subsample', 'douglas-peucker'.")
     parser.add_argument("--reverse", action="store_true", help="Reverse the flight plan.")
     parser.add_argument("--reset_airports", action="store_true", help="Reset the airports database.")
     parser.add_argument("gpx_fnames", type=str, nargs="+", help="Paths to the GPX files to read.")
@@ -58,7 +59,7 @@ def main():
     # sanity checks
     assert args.max_leg_length is None or args.max_leg_length > 0
     assert args.num_leg_points >= 2
-    assert args.algorithm in ["subsample"]
+    assert args.algorithm in ["subsample", "douglas-peucker"]
 
     # path to the airports database
     airports_json = os.environ["APPDATA"] + "\\gpx2pln_airports.json"
@@ -101,6 +102,8 @@ def main():
     legs = None
     if args.algorithm == "subsample":
         legs = gpx2pln_subsample.subsample(gpx.get_track_coords(), max_leg_length, args.num_leg_points)
+    elif args.algorithm == "douglas-peucker":
+        legs = gpx2pln_douglas_peucker.douglas_peucker(gpx.get_track_coords(), max_leg_length)
     else:
         raise NotImplementedError
     assert type(legs) == list and len(legs) > 0
